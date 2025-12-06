@@ -377,7 +377,7 @@ def main():
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            print(f"✅ New best validation accuracy: {best_val_acc:.4f}")
+            print(f" New best validation accuracy: {best_val_acc:.4f}")
 
     print(f"\n{'='*80}")
     print("Final Test Evaluation")

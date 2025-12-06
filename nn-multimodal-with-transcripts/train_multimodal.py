@@ -1,8 +1,3 @@
-"""
-Training Pipeline for Multi-Modal SCOTUS Model
-Includes data loading, training, and evaluation for all three model variants
-"""
-
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -21,8 +16,6 @@ from model_multimodal import MultiModalSCOTUS, MetadataOnlyModel, TextOnlyModel
 
 
 class SCOTUSMultiModalDataset(Dataset):
-    """Dataset for multi-modal SCOTUS prediction"""
-
     def __init__(
         self,
         transcript_data: pd.DataFrame,
@@ -30,7 +23,7 @@ class SCOTUSMultiModalDataset(Dataset):
         labels: np.ndarray,
         tokenizer: AutoTokenizer,
         max_length: int = 512,
-        mode: str = 'multimodal'  # 'multimodal', 'metadata_only', 'text_only'
+        mode: str = 'multimodal'
     ):
         self.transcript_data = transcript_data.reset_index(drop=True)
         self.metadata_features = metadata_features
@@ -43,12 +36,10 @@ class SCOTUSMultiModalDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        # Get label
         label = self.labels[idx]
 
         output = {'label': torch.tensor(label, dtype=torch.long)}
 
-        # Add metadata if needed
         if self.mode in ['multimodal', 'metadata_only']:
             metadata = torch.tensor(
                 self.metadata_features[idx],
@@ -56,12 +47,9 @@ class SCOTUSMultiModalDataset(Dataset):
             )
             output['metadata'] = metadata
 
-        # Add text if needed
         if self.mode in ['multimodal', 'text_only']:
-            # Get transcript
             transcript = self.transcript_data.iloc[idx]['transcript']
 
-            # Tokenize
             encoding = self.tokenizer(
                 transcript,
                 max_length=self.max_length,
@@ -81,38 +69,25 @@ def load_multimodal_data(
     scdb_path: str,
     features_path: str
 ) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray]:
-    """
-    Load and merge transcript data with SCDB metadata
-
-    Returns:
-        transcript_df: DataFrame with transcripts
-        features: Numpy array of metadata features
-        labels: Numpy array of labels
-    """
     print("Loading data...")
 
-    # Load transcripts
     with open(transcript_path, 'r') as f:
         transcripts = json.load(f)
     transcript_df = pd.DataFrame(transcripts)
 
-    # Load SCDB data
     scdb = pd.read_csv(scdb_path, encoding='latin1')
 
-    # Load preprocessed features
     data = np.load(features_path)
     all_features = data['X']
     all_labels = data['y']
     case_ids = data['case_ids']
 
-    # Merge on caseId
     transcript_df = transcript_df.merge(
         pd.DataFrame({'caseId': case_ids}),
         on='caseId',
         how='inner'
     )
 
-    # Get corresponding features and labels
     indices = [np.where(case_ids == cid)[0][0] for cid in transcript_df['caseId']]
     features = all_features[indices]
     labels = all_labels[indices]
@@ -131,16 +106,8 @@ def temporal_split_multimodal(
     train_cutoff: int = 2016,
     val_cutoff: int = 2020
 ) -> Dict[str, Tuple]:
-    """
-    Temporal split for multi-modal data
-
-    Returns:
-        Dictionary with train/val/test splits
-    """
-    # Get terms
     terms = transcript_df['term'].values
 
-    # Create splits
     train_mask = terms < train_cutoff
     val_mask = (terms >= train_cutoff) & (terms < val_cutoff)
     test_mask = terms >= val_cutoff
@@ -179,15 +146,12 @@ def train_epoch(
     device: torch.device,
     mode: str = 'multimodal'
 ) -> float:
-    """Train for one epoch"""
     model.train()
     total_loss = 0
 
     for batch in tqdm(dataloader, desc="Training"):
-        # Move to device
         labels = batch['label'].to(device)
 
-        # Forward pass
         if mode == 'multimodal':
             metadata = batch['metadata'].to(device)
             input_ids = batch['input_ids'].to(device)
@@ -203,10 +167,8 @@ def train_epoch(
             attention_mask = batch['attention_mask'].to(device)
             outputs = model(input_ids, attention_mask)
 
-        # Compute loss
         loss = criterion(outputs, labels)
 
-        # Backward pass
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -223,7 +185,6 @@ def evaluate(
     device: torch.device,
     mode: str = 'multimodal'
 ) -> Dict[str, float]:
-    """Evaluate model"""
     model.eval()
     total_loss = 0
     all_preds = []
@@ -231,10 +192,8 @@ def evaluate(
 
     with torch.no_grad():
         for batch in tqdm(dataloader, desc="Evaluating"):
-            # Move to device
             labels = batch['label'].to(device)
 
-            # Forward pass
             if mode == 'multimodal':
                 metadata = batch['metadata'].to(device)
                 input_ids = batch['input_ids'].to(device)
@@ -250,16 +209,13 @@ def evaluate(
                 attention_mask = batch['attention_mask'].to(device)
                 outputs = model(input_ids, attention_mask)
 
-            # Compute loss
             loss = criterion(outputs, labels)
             total_loss += loss.item()
 
-            # Get predictions
             preds = torch.argmax(outputs, dim=1)
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
-    # Compute metrics
     accuracy = accuracy_score(all_labels, all_preds)
     precision, recall, f1, _ = precision_recall_fscore_support(
         all_labels, all_preds, average='binary'
@@ -286,12 +242,9 @@ def train_model(
     mode: str,
     save_path: Optional[str] = None
 ) -> Dict[str, List]:
-    """Complete training loop"""
-
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-    # Learning rate scheduler
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode='max', factor=0.5, patience=3, verbose=True
     )
@@ -310,40 +263,33 @@ def train_model(
         print(f"Epoch {epoch+1}/{num_epochs}")
         print(f"{'='*60}")
 
-        # Train
         train_loss = train_epoch(model, train_loader, criterion, optimizer, device, mode)
         history['train_loss'].append(train_loss)
 
-        # Validate
         val_metrics = evaluate(model, val_loader, criterion, device, mode)
         history['val_loss'].append(val_metrics['loss'])
         history['val_accuracy'].append(val_metrics['accuracy'])
         history['val_f1'].append(val_metrics['f1'])
 
-        # Print metrics
         print(f"\nTrain Loss: {train_loss:.4f}")
         print(f"Val Loss:   {val_metrics['loss']:.4f}")
         print(f"Val Acc:    {val_metrics['accuracy']:.4f}")
         print(f"Val F1:     {val_metrics['f1']:.4f}")
 
-        # Learning rate scheduling
         scheduler.step(val_metrics['accuracy'])
 
-        # Save best model
         if val_metrics['accuracy'] > best_val_acc:
             best_val_acc = val_metrics['accuracy']
             if save_path:
                 torch.save(model.state_dict(), save_path)
-                print(f"✅ Saved best model (acc={best_val_acc:.4f})")
+                print(f"Saved best model (acc={best_val_acc:.4f})")
 
     return history
 
 
 def plot_training_history(history: Dict, save_path: Optional[str] = None):
-    """Plot training curves"""
     fig, axes = plt.subplots(1, 2, figsize=(15, 5))
 
-    # Loss
     axes[0].plot(history['train_loss'], label='Train Loss')
     axes[0].plot(history['val_loss'], label='Val Loss')
     axes[0].set_xlabel('Epoch')
@@ -352,7 +298,6 @@ def plot_training_history(history: Dict, save_path: Optional[str] = None):
     axes[0].legend()
     axes[0].grid(True)
 
-    # Accuracy
     axes[1].plot(history['val_accuracy'], label='Val Accuracy')
     axes[1].plot(history['val_f1'], label='Val F1')
     axes[1].set_xlabel('Epoch')
@@ -375,7 +320,6 @@ def plot_confusion_matrix(
     predictions: np.ndarray,
     save_path: Optional[str] = None
 ):
-    """Plot confusion matrix"""
     cm = confusion_matrix(labels, predictions)
 
     plt.figure(figsize=(8, 6))
@@ -396,9 +340,8 @@ def plot_confusion_matrix(
 
 
 if __name__ == "__main__":
-    # Configuration
-    TRANSCRIPT_PATH = "data/oyez_transcripts.json"
-    SCDB_PATH = "data/SCDB_2025_01_caseCentered_Citation.csv"
+    TRANSCRIPT_PATH = "../dataset/oyez_transcripts.json"
+    SCDB_PATH = "../dataset/SCDB_2025_01_caseCentered_Citation.csv"
     FEATURES_PATH = "data/features_engineered.npz"
 
     BATCH_SIZE = 8
@@ -409,17 +352,14 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}\n")
 
-    # Load tokenizer
     print("Loading Legal-BERT tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained('nlpaueb/legal-bert-base-uncased')
 
-    # Load data
     transcript_df, features, labels = load_multimodal_data(
         TRANSCRIPT_PATH, SCDB_PATH, FEATURES_PATH
     )
 
-    # Temporal split
     splits = temporal_split_multimodal(transcript_df, features, labels)
 
-    print("\n✅ Data loaded successfully!")
+    print("\n Data loaded successfully!")
     print(f"Ready to train multi-modal models")

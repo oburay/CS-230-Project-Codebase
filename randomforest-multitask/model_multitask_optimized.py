@@ -11,7 +11,6 @@ from sklearn.preprocessing import OneHotEncoder
 
 DATA_PATH = Path(__file__).parent.parent / "SCDB_2025_01_caseCentered_Citation.csv"
 
-# Pre-argument features only, focused on likely predictors
 FEATURES = [
     "issue", "issueArea",
     "petitioner", "petitionerState", "respondent", "respondentState",
@@ -23,18 +22,16 @@ FEATURES = [
     "term", "naturalCourt", "chief",
 ]
 
-# Multi-task targets (all related to case outcome)
 TARGETS = [
-    "decisionDirection",        # Conservative (1) vs Liberal (2) - PRIMARY TARGET
-    "decisionType",             # Type of decision (opinions, per curiam, etc.)
-    "caseDisposition",          # Final disposition of case
-    "majVotes",                 # Number of votes in majority coalition
+    "decisionDirection",
+    "decisionType",
+    "caseDisposition",
+    "majVotes",
 ]
 
 
 def load_data(path: Path = DATA_PATH):
     df = pd.read_csv(path)
-    # derive year of argument; drop rows missing ANY target
     df["dateArgumentYear"] = pd.to_datetime(df["dateArgument"], errors="coerce").dt.year
     df = df.dropna(subset=TARGETS + ["dateArgumentYear"])
     X = df[FEATURES + ["dateArgumentYear"]]
@@ -43,7 +40,7 @@ def load_data(path: Path = DATA_PATH):
 
 
 def build_preprocessor():
-    cat_features = FEATURES  # treat all base features as categorical
+    cat_features = FEATURES
     num_features = ["dateArgumentYear"]
 
     categorical = Pipeline([
@@ -73,7 +70,6 @@ def train_and_evaluate(random_state: int = 42):
     for target in TARGETS:
         print(f"  {target}: {len(y[target].unique())} classes")
 
-    # Date-based split: train <=2019; validation/test randomly split from 2020+ cases
     years = X["dateArgumentYear"]
     train_mask = years <= 2019
     recent_mask = years >= 2020
@@ -84,8 +80,6 @@ def train_and_evaluate(random_state: int = 42):
     print(f"\nTrain samples: {len(X_train)} (<=2019)")
     print(f"Recent samples: {len(X_recent)} (>=2020)")
 
-    # Split recent cases into equal-sized validation and test sets
-    # Stratify by primary target (decisionDirection) for fair comparison
     X_val, X_test, y_val, y_test = train_test_split(
         X_recent,
         y_recent,
@@ -97,12 +91,8 @@ def train_and_evaluate(random_state: int = 42):
     print(f"Validation samples: {len(X_val)}")
     print(f"Test samples: {len(X_test)}\n")
 
-    # Strategy: Train separate models for each task, each with task-specific hyperparameters
-    # This allows each task to use optimal parameters instead of forcing shared ones
-
     preprocessor = build_preprocessor()
 
-    # Fit preprocessor once
     X_train_prep = preprocessor.fit_transform(X_train)
     X_val_prep = preprocessor.transform(X_val)
 
@@ -112,7 +102,6 @@ def train_and_evaluate(random_state: int = 42):
     models = {}
     results = {}
 
-    # Task-specific hyperparameters (tuned independently)
     task_params = {
         "decisionDirection": {
             "n_estimators": 200,
@@ -179,7 +168,6 @@ def train_and_evaluate(random_state: int = 42):
         print(f"  Train accuracy: {results[target]['train']:.3f}")
         print(f"  Validation accuracy: {results[target]['val']:.3f}")
 
-    # Overall average
     train_acc_avg = np.mean([results[t]["train"] for t in TARGETS])
     val_acc_avg = np.mean([results[t]["val"] for t in TARGETS])
 

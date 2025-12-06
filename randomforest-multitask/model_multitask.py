@@ -11,7 +11,6 @@ from sklearn.multioutput import MultiOutputClassifier
 
 DATA_PATH = Path(__file__).parent.parent / "SCDB_2025_01_caseCentered_Citation.csv"
 
-# Pre-argument features only, focused on likely predictors
 FEATURES = [
     "issue", "issueArea",
     "petitioner", "petitionerState", "respondent", "respondentState",
@@ -23,18 +22,16 @@ FEATURES = [
     "term", "naturalCourt", "chief",
 ]
 
-# Multi-task targets (all related to case outcome)
 TARGETS = [
-    "decisionDirection",        # Conservative (1) vs Liberal (2) - primary target
-    "decisionType",             # Type of decision (opinions, per curiam, etc.)
-    "caseDisposition",          # Final disposition of case
-    "majVotes",                 # Number of votes in majority coalition
+    "decisionDirection",
+    "decisionType",
+    "caseDisposition",
+    "majVotes",
 ]
 
 
 def load_data(path: Path = DATA_PATH):
     df = pd.read_csv(path)
-    # derive year of argument; drop rows missing ANY target
     df["dateArgumentYear"] = pd.to_datetime(df["dateArgument"], errors="coerce").dt.year
     df = df.dropna(subset=TARGETS + ["dateArgumentYear"])
     X = df[FEATURES + ["dateArgumentYear"]]
@@ -43,7 +40,7 @@ def load_data(path: Path = DATA_PATH):
 
 
 def build_preprocessor():
-    cat_features = FEATURES  # treat all base features as categorical
+    cat_features = FEATURES
     num_features = ["dateArgumentYear"]
 
     categorical = Pipeline([
@@ -67,8 +64,6 @@ def build_preprocessor():
 def build_pipeline():
     preprocessor = build_preprocessor()
 
-    # Multi-task: one Random Forest per target, sharing same features
-    # Using best params from single-task model to prevent overfitting
     base_model = RandomForestClassifier(
         n_estimators=200,
         max_depth=15,
@@ -96,7 +91,6 @@ def train_and_evaluate(random_state: int = 42):
     for target in TARGETS:
         print(f"  {target}: {y[target].value_counts().to_dict()}")
 
-    # Date-based split: train <=2019; validation/test randomly split from 2020+ cases (equal size).
     years = X["dateArgumentYear"]
     train_mask = years <= 2019
     recent_mask = years >= 2020
@@ -107,7 +101,6 @@ def train_and_evaluate(random_state: int = 42):
     print(f"\nTrain samples: {len(X_train)} (<=2019)")
     print(f"Recent samples: {len(X_recent)} (>=2020)")
 
-    # Split recent cases into equal-sized validation and test sets.
     X_val, X_test, y_val, y_test = train_test_split(
         X_recent,
         y_recent,
@@ -120,13 +113,10 @@ def train_and_evaluate(random_state: int = 42):
 
     pipeline = build_pipeline()
 
-    # Train without hyperparameter search for faster results
-    # (Can add custom multi-output scorer later if needed)
     print("Training multi-task model...")
     pipeline.fit(X_train, y_train)
     print("Training complete!\n")
 
-    # Evaluate each task separately
     train_pred = pipeline.predict(X_train)
     val_pred = pipeline.predict(X_val)
 
@@ -141,7 +131,6 @@ def train_and_evaluate(random_state: int = 42):
         print(f"  Train accuracy: {train_acc:.3f}")
         print(f"  Validation accuracy: {val_acc:.3f}")
 
-    # Overall average
     train_acc_avg = sum(
         accuracy_score(y_train.iloc[:, i], train_pred[:, i])
         for i in range(len(TARGETS))
@@ -156,17 +145,6 @@ def train_and_evaluate(random_state: int = 42):
     print(f"  Train accuracy: {train_acc_avg:.3f}")
     print(f"  Validation accuracy: {val_acc_avg:.3f}")
     print(f"{'='*60}")
-
-    # Uncomment to evaluate on held-out test set after picking hyperparameters.
-    # print("\n" + "="*60)
-    # print("TEST SET RESULTS (held-out)")
-    # print("="*60)
-    # test_pred = pipeline.predict(X_test)
-    # for i, target in enumerate(TARGETS):
-    #     test_acc = accuracy_score(y_test.iloc[:, i], test_pred[:, i])
-    #     print(f"\n{target}:")
-    #     print(f"  Test accuracy: {test_acc:.3f}")
-    #     print(classification_report(y_test.iloc[:, i], test_pred[:, i], digits=3))
 
     return pipeline
 

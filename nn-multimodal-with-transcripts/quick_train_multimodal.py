@@ -1,7 +1,3 @@
-"""
-Quick Multi-Modal Training Script (Uses Sample Data for Demo)
-"""
-
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -11,7 +7,6 @@ from tqdm import tqdm
 
 from model_multimodal import MultiModalSCOTUS
 
-# Simple dataset for testing
 class SimpleDataset(Dataset):
     def __init__(self, n_samples, metadata_dim, tokenizer, mode='multimodal'):
         self.n_samples = n_samples
@@ -20,7 +15,6 @@ class SimpleDataset(Dataset):
         self.tokenizer = tokenizer
         self.mode = mode
 
-        # Sample texts
         self.texts = [
             "The petitioner argues that the statute violates the First Amendment.",
             "The respondent contends that the lower court erred in its interpretation.",
@@ -56,12 +50,10 @@ def train_quick():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"\nDevice: {device}")
 
-    # Load tokenizer
     print("\nLoading Legal-BERT tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained('nlpaueb/legal-bert-base-uncased')
-    print("✅ Tokenizer loaded")
+    print("Tokenizer loaded")
 
-    # Create datasets
     print("\nCreating sample datasets...")
     metadata_dim = 69
     train_dataset = SimpleDataset(100, metadata_dim, tokenizer)
@@ -69,9 +61,8 @@ def train_quick():
 
     train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=8)
-    print(f"✅ Train: {len(train_dataset)}, Val: {len(val_dataset)}")
+    print(f"Train: {len(train_dataset)}, Val: {len(val_dataset)}")
 
-    # Create model
     print("\nCreating multi-modal model...")
     model = MultiModalSCOTUS(
         metadata_dim=metadata_dim,
@@ -84,18 +75,15 @@ def train_quick():
     print(f"Total parameters: {total_params:,}")
     print(f"Trainable parameters: {trainable_params:,}")
 
-    # Training setup
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
 
-    # Train
     print(f"\n{'='*60}")
     print("Training")
     print(f"{'='*60}\n")
 
     num_epochs = 3
     for epoch in range(num_epochs):
-        # Train
         model.train()
         train_loss = 0
         train_correct = 0
@@ -121,7 +109,6 @@ def train_quick():
 
         train_acc = train_correct / train_total
 
-        # Validate
         model.eval()
         val_loss = 0
         val_correct = 0
@@ -149,7 +136,7 @@ def train_quick():
         print(f"  Val Loss:   {val_loss/len(val_loader):.4f}, Acc: {val_acc:.4f}")
 
     print(f"\n{'='*60}")
-    print("✅ Training complete!")
+    print("Training complete!")
     print(f"{'='*60}\n")
 
 

@@ -10,7 +10,6 @@ from sklearn.preprocessing import OneHotEncoder
 
 DATA_PATH = Path(__file__).parent.parent / "dataset" / "SCDB_2025_01_caseCentered_Citation.csv"
 
-# Pre-argument features only, focused on likely predictors
 FEATURES = [
     "issue", "issueArea",
     "petitioner", "petitionerState", "respondent", "respondentState",
@@ -25,7 +24,6 @@ FEATURES = [
 
 def load_data(path: Path = DATA_PATH):
     df = pd.read_csv(path)
-    # derive year of argument; drop target-null rows
     df["dateArgumentYear"] = pd.to_datetime(df["dateArgument"], errors="coerce").dt.year
     df = df.dropna(subset=["decisionDirection", "dateArgumentYear"])
     X = df[FEATURES + ["dateArgumentYear"]]
@@ -34,7 +32,7 @@ def load_data(path: Path = DATA_PATH):
 
 
 def build_pipeline():
-    cat_features = FEATURES  # treat all base features as categorical
+    cat_features = FEATURES
     num_features = ["dateArgumentYear"]
 
     categorical = Pipeline([
@@ -53,9 +51,6 @@ def build_pipeline():
         remainder="drop",
     )
 
-    # Base model: best params retrieved from 5-fold CV on training set below.
-    # Best params: {'model__n_estimators': 200, 'model__min_samples_split': 30, 'model__min_samples_leaf': 15,
-    # 'model__max_features': 'sqrt', 'model__max_depth': 15}
     model = RandomForestClassifier(
         n_estimators=400,
         max_depth=None,
@@ -72,7 +67,6 @@ def build_pipeline():
 
 def train_and_evaluate(random_state: int = 42):
     X, y = load_data()
-    # Date-based split: train <=2019; validation/test randomly split from 2020+ cases (equal size).
     years = X["dateArgumentYear"]
     train_mask = years <= 2019
     recent_mask = years >= 2020
@@ -80,7 +74,6 @@ def train_and_evaluate(random_state: int = 42):
     X_train, y_train = X[train_mask], y[train_mask]
     X_recent, y_recent = X[recent_mask], y[recent_mask]
 
-    # Split recent cases into equal-sized validation and test sets.
     X_val, X_test, y_val, y_test = train_test_split(
         X_recent,
         y_recent,
@@ -91,7 +84,6 @@ def train_and_evaluate(random_state: int = 42):
 
     pipeline = build_pipeline()
 
-    # Randomized search over a small grid (no SciPy needed).
     param_distributions = {
         "model__max_depth": [None, 15, 20, 25],
         "model__min_samples_split": [5, 10, 15, 20, 30, 40],
@@ -114,17 +106,12 @@ def train_and_evaluate(random_state: int = 42):
     search.fit(X_train, y_train)
     pipeline = search.best_estimator_
 
-    # Inspect bias/variance via train vs. validation accuracy.
     train_pred = pipeline.predict(X_train)
     val_pred = pipeline.predict(X_val)
     print(f"Train accuracy: {accuracy_score(y_train, train_pred):.3f}")
     print(f"Validation accuracy: {accuracy_score(y_val, val_pred):.3f}")
     print(f"Best params: {search.best_params_}")
 
-    # Uncomment to evaluate on held-out test set after picking hyperparameters.
-    # test_pred = pipeline.predict(X_test)
-    # print(f"Test accuracy: {accuracy_score(y_test, test_pred):.3f}")
-    # print(classification_report(y_test, test_pred, digits=3))
     return pipeline
 
 
