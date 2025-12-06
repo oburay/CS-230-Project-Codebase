@@ -1,0 +1,67 @@
+Using device: cpu
+
+Loading and encoding data...
+Total samples: 8234
+Features: 24 categorical + 4 numeric
+Numeric features: ['term', 'median_ideology', 'conservative_era', 'liberal_era']
+Vocabulary sizes (after grouping rare): [229, 15, 180, 52, 185, 54, 7, 61, 119, 52, 65, 52, 3, 14, 13, 4, 4, 8, 8, 9, 127, 45, 36, 5]
+Target distribution: [4119 4115]
+
+Train samples: 7916 (<=2019)
+Validation samples: 159 (>=2020)
+Test samples: 159 (>=2020)
+
+Embedding dimensions (capped at 20): [20, 8, 20, 20, 20, 20, 4, 20, 20, 20, 20, 20, 2, 7, 7, 2, 2, 4, 4, 5, 20, 20, 18, 3]
+
+Model parameters: 147,345 (trainable: 147,345)
+
+Training...
+================================================================================
+Epoch   1/100 | Train Loss: 0.6746 | Train Acc: 0.5874 | Val Loss: 0.6312 | Val Acc: 0.6226
+Epoch   2/100 | Train Loss: 0.6177 | Train Acc: 0.6580 | Val Loss: 0.6286 | Val Acc: 0.6352
+Epoch   3/100 | Train Loss: 0.5919 | Train Acc: 0.6723 | Val Loss: 0.6215 | Val Acc: 0.6541
+Epoch   4/100 | Train Loss: 0.5627 | Train Acc: 0.6943 | Val Loss: 0.6305 | Val Acc: 0.6226
+Epoch   5/100 | Train Loss: 0.5451 | Train Acc: 0.7106 | Val Loss: 0.6346 | Val Acc: 0.6164
+Epoch   6/100 | Train Loss: 0.5254 | Train Acc: 0.7312 | Val Loss: 0.6715 | Val Acc: 0.6226
+Epoch   7/100 | Train Loss: 0.5103 | Train Acc: 0.7449 | Val Loss: 0.6401 | Val Acc: 0.6101
+Epoch   8/100 | Train Loss: 0.4861 | Train Acc: 0.7547 | Val Loss: 0.6860 | Val Acc: 0.6164
+Epoch   9/100 | Train Loss: 0.4675 | Train Acc: 0.7689 | Val Loss: 0.6579 | Val Acc: 0.6478
+Epoch  10/100 | Train Loss: 0.4282 | Train Acc: 0.7993 | Val Loss: 0.6806 | Val Acc: 0.6415
+Epoch  15/100 | Train Loss: 0.3308 | Train Acc: 0.8514 | Val Loss: 0.8476 | Val Acc: 0.6101
+
+Early stopping at epoch 18
+================================================================================
+
+📊 Training plot saved to plots/v2_improved_nn_training.png
+
+================================================================================
+VALIDATION SET RESULTS (2020+ cases)
+================================================================================
+Validation Accuracy: 0.6541
+
+Classification Report:
+              precision    recall  f1-score   support
+
+Conservative     0.6667    0.7500    0.7059        88
+     Liberal     0.6333    0.5352    0.5802        71
+
+    accuracy                         0.6541       159
+   macro avg     0.6500    0.6426    0.6430       159
+weighted avg     0.6518    0.6541    0.6497       159
+
+
+================================================================================
+TEST SET RESULTS (held-out 2020+ cases)
+================================================================================
+Test Accuracy: 0.7107
+
+Classification Report:
+              precision    recall  f1-score   support
+
+Conservative     0.7216    0.7865    0.7527        89
+     Liberal     0.6935    0.6143    0.6515        70
+
+    accuracy                         0.7107       159
+   macro avg     0.7076    0.7004    0.7021       159
+weighted avg     0.7093    0.7107    0.7081       159
+

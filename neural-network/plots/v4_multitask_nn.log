@@ -1,0 +1,103 @@
+Loading data...
+Total samples: 8156
+decisionDirection: 3 classes
+decisionType: 4 classes
+caseDisposition: 10 classes
+majVotes: 7 classes
+Training samples: 7840 (≤2019)
+Recent samples: 316 (≥2020)
+Validation samples: 158
+Test samples: 158
+
+IMPROVED Model Architecture:
+  Total parameters: 353,819
+  Shared layers: [512, 256, 128] (was [256, 128, 64])
+  Task heads: [3, 4, 10, 7] from 128 dims (was 64)
+  Task weights: [0.7, 0.1, 0.1, 0.1] (PRIMARY gets 0.7)
+
+Training IMPROVED model...
+================================================================================
+Epoch 1/100
+  Train loss: 0.9281
+  decisionDirection: 0.6076 ⭐ PRIMARY
+  decisionType: 0.8987
+  caseDisposition: 0.2595
+  majVotes: 0.3354
+  ✓ New best primary accuracy: 0.6076
+Epoch 2/100
+  Train loss: 0.8098
+  decisionDirection: 0.6456 ⭐ PRIMARY
+  decisionType: 0.8924
+  caseDisposition: 0.2975
+  majVotes: 0.3291
+  ✓ New best primary accuracy: 0.6456
+Epoch 3/100
+  Train loss: 0.7698
+  decisionDirection: 0.6329 ⭐ PRIMARY
+  decisionType: 0.8924
+  caseDisposition: 0.3291
+  majVotes: 0.3418
+Epoch 5/100
+  Train loss: 0.7230
+  decisionDirection: 0.6076 ⭐ PRIMARY
+  decisionType: 0.8924
+  caseDisposition: 0.2595
+  majVotes: 0.3481
+Epoch 10/100
+  Train loss: 0.6254
+  decisionDirection: 0.5823 ⭐ PRIMARY
+  decisionType: 0.8987
+  caseDisposition: 0.3165
+  majVotes: 0.3481
+Epoch 15/100
+  Train loss: 0.5433
+  decisionDirection: 0.5949 ⭐ PRIMARY
+  decisionType: 0.8987
+  caseDisposition: 0.2911
+  majVotes: 0.3608
+
+Early stopping at epoch 17
+
+================================================================================
+IMPROVED MULTI-TASK NN - FINAL RESULTS
+================================================================================
+
+Validation Set:
+  decisionDirection ⭐ PRIMARY: 0.6456
+  decisionType: 0.8924
+  caseDisposition: 0.2975
+  majVotes: 0.3291
+
+Test Set:
+  decisionDirection ⭐ PRIMARY: 0.6139
+  decisionType: 0.9494
+  caseDisposition: 0.3987
+  majVotes: 0.3291
+
+================================================================================
+PRIMARY TASK (decisionDirection) - Detailed Report (Test Set)
+================================================================================
+              precision    recall  f1-score   support
+
+         1.0     0.7069    0.4824    0.5734        85
+         2.0     0.5600    0.8000    0.6588        70
+         3.0     0.0000    0.0000    0.0000         3
+
+    accuracy                         0.6139       158
+   macro avg     0.4223    0.4275    0.4108       158
+weighted avg     0.6284    0.6139    0.6004       158
+
+
+================================================================================
+IMPROVEMENT SUMMARY
+================================================================================
+Key improvements:
+  1. Weighted loss: 0.7 (primary) vs 0.25 (equal)
+  2. Larger capacity: [512, 256, 128] vs [256, 128, 64]
+  3. Task-specific learning rates
+
+Expected gain over original multi-task NN: +6-10%
+Target: Match single-task performance (~71%)
+
+Primary task test accuracy: 0.6139
+⚠️  Still below target - consider uncertainty weighting

@@ -1,0 +1,64 @@
+Loading data...
+Total samples: 8156
+decisionDirection: 3 classes
+decisionType: 4 classes
+caseDisposition: 10 classes
+majVotes: 7 classes
+Training samples: 7840 (≤2019)
+Recent samples: 316 (≥2020)
+Validation samples: 158
+Test samples: 158
+
+Model architecture:
+  Parameters: 148,699
+  Shared layers: [256, 128, 64]
+  Task heads: [3, 4, 10, 7]
+
+Training...
+Epoch 5/100
+  decisionDirection: 0.6962 (PRIMARY)
+  decisionType: 0.8924
+  caseDisposition: 0.3544
+  majVotes: 0.3481
+Epoch 10/100
+  decisionDirection: 0.6772 (PRIMARY)
+  decisionType: 0.8861
+  caseDisposition: 0.3861
+  majVotes: 0.3354
+Epoch 15/100
+  decisionDirection: 0.6709 (PRIMARY)
+  decisionType: 0.8861
+  caseDisposition: 0.3671
+  majVotes: 0.3354
+
+Early stopping at epoch 18
+
+================================================================================
+FINAL RESULTS
+================================================================================
+
+Validation Set:
+  decisionDirection (PRIMARY): 0.6962
+  decisionType: 0.8861
+  caseDisposition: 0.3734
+  majVotes: 0.3354
+
+Test Set:
+  decisionDirection (PRIMARY): 0.6266
+  decisionType: 0.9430
+  caseDisposition: 0.4051
+  majVotes: 0.3228
+
+================================================================================
+PRIMARY TASK (decisionDirection) - Detailed Report
+================================================================================
+              precision    recall  f1-score   support
+
+         1.0     0.6552    0.6706    0.6628        85
+         2.0     0.5915    0.6000    0.5957        70
+         3.0     0.0000    0.0000    0.0000         3
+
+    accuracy                         0.6266       158
+   macro avg     0.4156    0.4235    0.4195       158
+weighted avg     0.6145    0.6266    0.6205       158
+
